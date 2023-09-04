@@ -1,6 +1,7 @@
 # Custom:
 *.session
 chat_history.json
+chroma/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -126,6 +127,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.vscode
 env/
 venv/
 ENV/

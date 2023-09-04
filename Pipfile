@@ -7,13 +7,18 @@ name = "pypi"
 python-dotenv = "*"
 langchain = "*"
 openai = "*"
-pytelegrambotapi = "*"
 telethon = "*"
-black = "*"
+chromadb = "*"
+jq = "*"
+fastapi = "*"
+uvicorn = "*"
+pydantic = "*"
 
 [dev-packages]
 bandit = "*"
+black = "*"
+nest-asyncio = "*"
 
 [requires]
 python_version = "3.11"
-python_full_version = "3.11.3"
+python_full_version = "3.11.5"

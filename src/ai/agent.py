@@ -14,10 +14,18 @@ from ai import OPENAI_MODEL_NAME
 log = logging.getLogger(__name__)
 
 
+# relevant_history_prompt = PromptTemplate.from_template(
+#     """
+#     Ти знайшов в чаті групи декілька повідомлень.
+#     Переліч та підсумуй ці повідомлення.
+#     ПОВІДОМЛЕННЯ: {context}
+#     ТВОЯ ВІДПОВІДЬ:
+#     """
+# )
 relevant_history_prompt = PromptTemplate.from_template(
     """
-    Ти знайшов в чаті групи декілька повідомлень.
-    Переліч та підсумуй ці повідомлення. 
+    Ти знайшов декілька повідомлень.
+    Коротко підсумуй ці повідомлення. 
     ПОВІДОМЛЕННЯ: {context}
     ТВОЯ ВІДПОВІДЬ:
     """
@@ -52,21 +60,9 @@ prompt_angry_str = """
 
 ТВОЯ ВІДПОВІДЬ:
 """
-prompt_friendly_str = """
-Тебе звуть Йосип і ти штучний інтелект (ШІ) в чат групі телеграм. 
-Ти дотепний та безтурботний гей. Ти любиш Арестовича та Шарія.
 
-Твої відповіді мають бути короткими, креативними, смішними.
-
-Твоє завдання відповісти на наступне повідомлення: {human_message}
-У своїй відповіді:
-1) Візьми до уваги минулі повідомлення в групі cхожі на це: {context}.
-2) Візьми до уваги нещодавні повідомлення в групі: {chat_history}.
-
-ТВОЯ ВІДПОВІДЬ:
-"""
 prompt_ai = PromptTemplate(
-    template=prompt_friendly_str,
+    template=prompt_angry_str,
     input_variables=["human_message", "context", "chat_history"],
 )
 
@@ -81,7 +77,6 @@ class Response:
 class BuddyAI:
     model_name: str
 
-    with_context: bool
     vectordb: Optional[VectorDB]
     combine_docs_chain: StuffDocumentsChain | None = None
 
@@ -94,7 +89,7 @@ class BuddyAI:
 
     def __init__(
         self,
-        vectordb: Optional[VectorDB],
+        vectordb: Optional[VectorDB] = None,
         with_query_chain: bool = True,
         memory_interactions=5,
         temperature=0.7,
@@ -106,6 +101,12 @@ class BuddyAI:
 
         llm = OpenAI(temperature=temperature, model_name=self.model_name)
 
+        self.combine_docs_chain = StuffDocumentsChain(
+            llm_chain=LLMChain(llm=llm, prompt=relevant_history_prompt),
+            document_prompt=document_prompt,
+            document_variable_name="context",
+        )
+
         self.memory = ConversationBufferWindowMemory(
             k=memory_interactions,
             input_key="human_message",
@@ -114,7 +115,7 @@ class BuddyAI:
             human_prefix="(Людина)",
         )
 
-        if self.with_context and self.with_query_chain:
+        if self.vectordb and self.with_query_chain:
             self.query_chain = LLMChain(llm=llm, prompt=prompt_query)
 
         self.chain = LLMChain(llm=llm, memory=self.memory, prompt=prompt_ai)

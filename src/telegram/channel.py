@@ -1,6 +1,7 @@
 import json
 import time
 from typing import Optional, Dict
+from datetime import datetime
 from dataclasses import dataclass, asdict
 from dotenv import dotenv_values
 from langchain import PromptTemplate
@@ -114,6 +115,15 @@ class Messages:
 
         return self.data[self.iter_idx]
 
+    def batch_messages(self, msg_separator="\n", window_size=4) -> list[str]:
+        all_msgs: list[str] = [msg.context_text for msg in self]
+        batches: list[str] = []
+        for i in range(0, len(all_msgs) - window_size + 1, window_size):
+            batch = msg_separator.join(all_msgs[i : i + window_size])
+            batches.append(batch)
+
+        return batches
+
 
 class MessageFormatter:
     reply_tmpl = PromptTemplate(
@@ -121,9 +131,14 @@ class MessageFormatter:
         input_variables=["name", "text", "attachment"],
     )
 
+    # message_tmpl_with_time = PromptTemplate(
+    #     template="{name} написав о {time}:{text}{attachment}{reply}",
+    #     input_variables=["name", "time", "text", "attachment", "reply"],
+    # )
+
     message_tmpl = PromptTemplate(
-        template="{name} написав о {time}:{text}{attachment}{reply}",
-        input_variables=["name", "time", "text", "attachment", "reply"],
+        template="{name} написав:{text}{attachment}{reply}",
+        input_variables=["name", "text", "attachment", "reply"],
     )
 
     @classmethod
@@ -135,12 +150,17 @@ class MessageFormatter:
         message.context_text = cls.message_tmpl.format(
             **{
                 "name": message.name,
-                "time": message.time,
+                # "time": cls.time(message.time),
                 "text": cls.text(message.text),
                 "attachment": cls.attachment(message),
                 "reply": reply,
             }
         )
+
+    @classmethod
+    def time(cls, time: datetime) -> str:
+        # t = datetime.fromisoformat(time) # if t is str
+        return time.strftime("%Y-%m-%d %H:%M:%S")
 
     @classmethod
     def text(cls, text: str) -> str:

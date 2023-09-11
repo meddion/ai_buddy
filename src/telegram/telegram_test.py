@@ -1,6 +1,9 @@
 import unittest
 import json
-from channel import Messages
+import logging
+from telegram.channel import Messages, Channel
+import telethon
+from dotenv import dotenv_values
 
 
 class TestTelegramChannel(unittest.TestCase):
@@ -41,7 +44,35 @@ class TestTelegramChannel(unittest.TestCase):
 
         self.assertEqual(msgs_from_file.toJSON(), msgs_from_dict.toJSON())
 
+    def test_integration_history_fetch(self):
+        """An integration test that calls Telegram."""
+        env = dotenv_values()
+        username = env["TELEGRAM_USER"]
+        app_id = env["TELEGRAM_APP_ID"]
+        api_hash = env["TELEGRAM_API_HASH"]
+        channel_id = int(env["TELEGRAM_CHANNEL_ID"])  # 564660774 #- Me
+
+        client = telethon.TelegramClient(
+            username,
+            app_id,
+            api_hash,
+        )
+
+        async def test():
+            tchannel = await client.get_entity(channel_id)
+            chan = Channel(client, tchannel)
+            search_query = "пиво"
+            history = await chan.history(search=search_query)
+            msgs = [msg for msg in history]
+            self.assertNotEqual(len(msgs), 0)
+
+        with client:
+            client.loop.run_until_complete(test())
+
     def tearDown(self) -> None:
         import os
 
-        os.remove(self.temp_file)
+        try:
+            os.remove(self.temp_file)
+        except Exception as err:
+            logging.warn(f"On deleting {self.temp_file}: {err}")

@@ -5,9 +5,11 @@ from langchain.docstore.document import Document
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.schema import Document
 
+from typing import Optional
 from dataclasses import dataclass
 
 from ai import OPENAI_EMBEDDING_MODEL
+import sqlite3
 
 
 def create_documents(texts: list[str], separator="\n\n") -> list[Document]:
@@ -23,7 +25,7 @@ def create_documents(texts: list[str], separator="\n\n") -> list[Document]:
     return text_splitter.create_documents([united_texts])
 
 
-@dataclass
+@dataclass(frozen=True)
 class VectorDBConfig:
     search_k: int = 10
     embedding_model: str = OPENAI_EMBEDDING_MODEL
@@ -55,3 +57,48 @@ class VectorDB:
 
     def get_relevant_documents(self, query: str) -> list[dict]:
         return self.retriever.get_relevant_documents(query)
+
+
+class MetadataStore:
+    conn: sqlite3.Connection
+
+    def __init__(self, dbname="./sqlite3/metadata.db"):
+        self.conn = sqlite3.connect(dbname)
+        self.conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS channel_meta 
+            (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            channel_id TEXT NOT NULL,
+            last_saved_msg_id TEXT NOT NULL);
+            """
+        )
+
+    def close(self):
+        self.conn.close()
+
+    def store_last_saved_msg_id(self, channel_id: str, last_saved_msg_id: str):
+        cursor = self.conn.cursor()
+
+        cursor.execute("SELECT * FROM channel_meta WHERE channel_id = ?", [channel_id])
+        existing_record = cursor.fetchone()
+
+        if existing_record:
+            cursor.execute(
+                "UPDATE channel_meta SET last_saved_msg_id = ? WHERE channel_id = ?",
+                [last_saved_msg_id, channel_id],
+            )
+        else:
+            cursor.execute(
+                "INSERT INTO channel_meta (channel_id, last_saved_msg_id) VALUES (?, ?)",
+                [channel_id, last_saved_msg_id],
+            )
+
+        self.conn.commit()
+
+    def last_saved_msg_id(self, channel_id: str) -> Optional[str]:
+        q = self.conn.execute(
+            f"SELECT last_saved_msg_id FROM channel_meta WHERE channel_id='{channel_id}'"
+        )
+
+        res = q.fetchone()
+        return res[0] if res else None

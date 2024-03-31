@@ -58,7 +58,7 @@ class TestTelegramChannel(unittest.TestCase):
             api_hash,
         )
 
-        async def test():
+        async def test_search():
             tchannel = await client.get_entity(channel_id)
             chan = Channel(client, tchannel)
             search_query = "пиво"
@@ -67,7 +67,19 @@ class TestTelegramChannel(unittest.TestCase):
             self.assertNotEqual(len(msgs), 0)
 
         with client:
-            client.loop.run_until_complete(test())
+            client.loop.run_until_complete(test_search())
+
+        async def test_picking():
+            tchannel = await client.get_entity(channel_id)
+            chan = Channel(client, tchannel)
+
+            history = await chan.history()
+
+            msgs = [msg for msg in history]
+            self.assertNotEqual(len(msgs), 0)
+
+        with client:
+            client.loop.run_until_complete(test_picking())
 
     def tearDown(self) -> None:
         import os

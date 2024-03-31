@@ -159,7 +159,6 @@ class MessageFormatter:
 
     @classmethod
     def time(cls, time: datetime) -> str:
-        # t = datetime.fromisoformat(time) # if t is str
         return time.strftime("%Y-%m-%d %H:%M:%S")
 
     @classmethod
@@ -234,13 +233,21 @@ class Channel:
 
     async def history(
         self,
-        formatters=[MessageFormatter()],
+        formatters: Optional[list] = None,
+        min_id: int = 0,
         offset_date=None,
         search: Optional[str] = None,
     ) -> Messages:
+        if not formatters:
+            formatters = [MessageFormatter()]
+
         messages: list[Message] = []
         async for tmessage in self.client.iter_messages(
-            self.channel, offset_date=offset_date, search=search, reverse=True
+            self.channel,
+            min_id=min_id,
+            offset_date=offset_date,
+            search=search,
+            reverse=True,
         ):
             if isinstance(tmessage, TelegramMessage):
                 msg = Message(

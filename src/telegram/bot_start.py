@@ -7,6 +7,8 @@ from ai import BuddyAI, Response
 import logging
 
 log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+
 
 if __name__ == "__main__":
     env = dotenv_values()
@@ -20,15 +22,13 @@ if __name__ == "__main__":
 
     buddy_ai: BuddyAI = BuddyAI(with_query_chain=False, with_context=False)
 
-    # telethon.events.newmessage.NewMessage.Event
-    # @bot.on(events.NewMessage(incoming=True))
     @bot.on(events.NewMessage(incoming=True, chats=[channel_id]))
     async def message_handler(event: events.NewMessage.Event):
         sender: User = await event.get_sender()
         sender_name = await Channel.name_from_user(sender)
 
         human_message = f"{sender_name}: {event.raw_text}"
-        log.warning(f"Human message to AI: '{human_message}'")
+        log.debug(f"Human message to AI: '{human_message}'")
 
         resp: Response = buddy_ai(human_message)
 

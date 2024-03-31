@@ -1,7 +1,9 @@
 # Custom:
+sqlite3
 *.session
 chat_history.json
 chroma/
+src/scratch.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
